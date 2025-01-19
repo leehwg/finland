@@ -419,7 +419,7 @@ st.markdown(
 if uploaded_file is not None:
     # Load the data
     data = load_data(uploaded_file)
-    tickers = data["Ticker"].unique()
+    tickers = data['Ticker'].unique()
 
     ticker = st.sidebar.selectbox("Select Ticker:", options=tickers)
     ticker_data = data[data["Ticker"] == ticker]
