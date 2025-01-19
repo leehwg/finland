@@ -410,7 +410,7 @@ st.markdown(
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown(
     """
-    <p style='text-align: center; color: gray; font-size: 14px;'>Developed by Group 5 | All rights reserved</p>
+    <p style='text-align: center; color: gray; font-size: 14px;'>Developed by Group 5 </p>
     """,
     unsafe_allow_html=True,
 )
