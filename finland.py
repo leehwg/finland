@@ -22,12 +22,10 @@ def get_MACD(df, column='Price Close'):
     return df
 
 def get_RSI(df, column='Price Close', time_window=14):
-    diff = df[column].diff(1)
-    up_chg = np.where(diff > 0, diff, 0)
-    down_chg = np.where(diff < 0, -diff, 0)
-    up_chg_avg = pd.Series(up_chg).ewm(com=time_window - 1, min_periods=time_window).mean()
-    down_chg_avg = pd.Series(down_chg).ewm(com=time_window - 1, min_periods=time_window).mean()
-    RS = up_chg_avg / down_chg_avg
+    delta = df[column].diff()
+    gain = delta.where(delta > 0, 0).rolling(window=time_window).mean()
+    loss = -delta.where(delta < 0, 0).rolling(window=time_window).mean()
+    RS = gain / loss
     df['RSI'] = 100 - (100 / (1 + RS))
     return df
 
@@ -50,6 +48,8 @@ def get_MFI(df, high_col='Price High', low_col='Price Low', close_col='Price Clo
     df['MFI'] = 100 - (100 / (1 + money_flow_ratio))
     return df
 
+
+###########################################################################################################
 # Load data function
 def load_data(file_path):
     df = pd.read_csv(file_path)
@@ -57,9 +57,12 @@ def load_data(file_path):
     df.sort_values(by=["Ticker", "Date"], inplace=True)
     return df
 
+###########################################################################################################
 # Plotting functions for the technical indicators
-def plot_candlestick_with_bb(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True, show_ma20=True,
-                             show_ma50=True, show_ma100=True):
+
+# Candlestick
+def plot_candlestick_with_indicators(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True,
+                                     show_ma20=True, show_ma50=True, show_ma100=True):
     # Candlestick chart
     fig.add_trace(go.Candlestick(
         x=df['Date'],
@@ -95,15 +98,15 @@ def plot_candlestick_with_bb(fig, df, row, column=1, show_bb=True, show_sma=True
         row = row, col = column
     )
 
-    # # Simple Moving Average (SMA)
-    # if show_sma:
-    #     fig.add_trace(go.Scatter(
-    # x = df['Date'],
-    # y = df['SMA'],
-    # name = '20-Day SMA',
-    # line = dict(color='orange', width=1.5)),
-    # row = row, col = column
-    # )
+        # Simple Moving Average (SMA)
+        if show_sma:
+            fig.add_trace(go.Scatter(
+        x = df['Date'],
+        y = df['SMA'],
+        name = '20-Day SMA',
+        line = dict(color='orange', width=1.5)),
+        row = row, col = column
+        )
 
     # Moving Averages (MA10, MA20, MA50, MA100)
     if show_ma10:
@@ -139,8 +142,178 @@ def plot_candlestick_with_bb(fig, df, row, column=1, show_bb=True, show_sma=True
     line = dict(color='#673AB7', width=1.5)),
     row = row, col = column
     )
-
     return fig
+
+# Line Chart
+def plot_line_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True,
+                                     show_ma20=True, show_ma50=True, show_ma100=True):
+    fig.add_trace(
+        go.Scatter(
+            x=df['Date'],
+            y=df['Price Close'],
+            name='Line Chart',
+            line=dict(color='#FF33CC', width=2)
+        ),
+        row=row, col=column
+    )
+    # Bollinger Band shaded area
+    if show_bb:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['Upper Band'],
+            name='Upper Band',
+            line=dict(color='RoyalBlue', width=1.5),
+            mode='lines',
+            showlegend=False),
+            row=row, col=column
+        )
+
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['Lower Band'],
+            name='Lower Band',
+            fill='tonexty',  # Fill the area between Upper and Lower bands
+            fillcolor='rgba(173, 216, 230, 0.2)',  # Light sky blue with 20% opacity
+            line=dict(color='RoyalBlue', width=1.5),
+            mode='lines',
+            showlegend=False),
+            row=row, col=column
+        )
+
+        # Simple Moving Average (SMA)
+        if show_sma:
+            fig.add_trace(go.Scatter(
+                x=df['Date'],
+                y=df['SMA'],
+                name='20-Day SMA',
+                line=dict(color='orange', width=1.5)),
+                row=row, col=column
+            )
+
+    # Moving Averages (MA10, MA20, MA50, MA100)
+    if show_ma10:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['MA10'],
+            name='MA10',
+            line=dict(color='RoyalBlue', width=1.5)),
+            row=row, col=column
+        )
+    if show_ma20:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['MA20'],
+            name='MA20',
+            line=dict(color='orange', width=1.5)),
+            row=row, col=column
+        )
+    if show_ma50:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['MA50'],
+            name='MA50',
+            line=dict(color='grey', width=1.5)),
+            row=row, col=column
+        )
+
+    if show_ma100:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['MA100'],
+            name='MA100',
+            line=dict(color='#673AB7', width=1.5)),
+            row=row, col=column
+        )
+    return fig
+
+# OHLC Chart
+def plot_ohlc_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True,
+                                     show_ma20=True, show_ma50=True, show_ma100=True):
+    fig.add_trace(
+        go.Ohlc(
+            x=df['Date'],
+            open=df['Price Open'],
+            high=df['Price High'],
+            low=df['Price Low'],
+            close=df['Price Close'],
+            name='OHLC',
+            line=dict(width=1),
+            increasing=dict(line=dict(color='#00CC96')),  # Green for increasing
+            decreasing=dict(line=dict(color='#EF553B')),  # Red for decreasing
+        ),
+        row=row, col=column
+    )
+
+    # Bollinger Band shaded area
+    if show_bb:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['Upper Band'],
+            name='Upper Band',
+            line=dict(color='RoyalBlue', width=1.5),
+            mode='lines',
+            showlegend=False),
+            row=row, col=column
+        )
+
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['Lower Band'],
+            name='Lower Band',
+            fill='tonexty',  # Fill the area between Upper and Lower bands
+            fillcolor='rgba(173, 216, 230, 0.2)',  # Light sky blue with 20% opacity
+            line=dict(color='RoyalBlue', width=1.5),
+            mode='lines',
+            showlegend=False),
+            row=row, col=column
+        )
+
+        # Simple Moving Average (SMA)
+        if show_sma:
+            fig.add_trace(go.Scatter(
+                x=df['Date'],
+                y=df['SMA'],
+                name='20-Day SMA',
+                line=dict(color='orange', width=1.5)),
+                row=row, col=column
+            )
+
+    # Moving Averages (MA10, MA20, MA50, MA100)
+    if show_ma10:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['MA10'],
+            name='MA10',
+            line=dict(color='RoyalBlue', width=1.5)),
+            row=row, col=column
+        )
+    if show_ma20:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['MA20'],
+            name='MA20',
+            line=dict(color='orange', width=1.5)),
+            row=row, col=column
+        )
+    if show_ma50:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['MA50'],
+            name='MA50',
+            line=dict(color='grey', width=1.5)),
+            row=row, col=column
+        )
+
+    if show_ma100:
+        fig.add_trace(go.Scatter(
+            x=df['Date'],
+            y=df['MA100'],
+            name='MA100',
+            line=dict(color='#673AB7', width=1.5)),
+            row=row, col=column
+        )
+    return fig
+#--------------------------------------------------------------------------------
 
 def plot_MACD(fig, df, row, column=1):
     df['Hist-Color'] = np.where(df['Histogram'] < 0, 'red', 'green')
@@ -255,10 +428,19 @@ def plot_MFI(fig, df, row, column=1):
     return fig
 
 def plot_volume(fig, df, row, column=1):
-    fig.add_trace(go.Bar(x=df['Date'], y=df['Volume'], name='Volume', marker=dict(color='lightskyblue')),
-                  row=row, col=column)
+    # Tạo cột màu dựa trên giá đóng cửa và giá mở cửa
+    df['Volume Color'] = df.apply(lambda x: 'red' if x['Price Close'] < x['Price Open'] else 'green', axis=1)
+    fig.add_trace(
+        go.Bar(
+            x=df['Date'],
+            y=df['Volume'],
+            name='Volume',
+            marker=dict(color=df['Volume Color']),  # Gắn màu cho các cột
+        ),
+        row=row,
+        col=column
+    )
     return fig
-
 ####################################################################################################################
 # Apply Trading Strategy
 def apply_trading_strategy(df, strategy, column='Price Close', risk=0.025):
@@ -382,7 +564,6 @@ def plot_buy_sell_points(fig, df, row, column=1):
     )
     return fig
 
-
 ##################################################################################################################
 # Streamlit interface setup
 # Main Header with custom styling
@@ -439,10 +620,20 @@ if uploaded_file is not None:
 
     if filtered_data.empty:
         st.error("No data available for the selected parameters.")
+
     else:
         # Display filtered data
         st.markdown(f"## {ticker} - Price Data")
         st.dataframe(filtered_data)
+
+
+        # Sidebar for selecting Chart to display
+        st.sidebar.header("Chart Options")
+        chart_type = st.sidebar.selectbox(
+            "Select Chart Type",
+            ["Candlestick", "Line Chart", "OHLC Chart"]
+        )
+
 
         # Calculate technical indicators
         filtered_data = get_MACD(filtered_data)
@@ -464,6 +655,7 @@ if uploaded_file is not None:
 
 
         # Sidebar for selecting Buy/Sell strategy
+        st.sidebar.header("Trading Strategy Options")
         buy_sell_strategy = st.sidebar.selectbox(
             "Select Buy/Sell Strategy",
             options=["None", "SMA", "MACD", "RSI", "MFI", "BB"])
@@ -472,44 +664,113 @@ if uploaded_file is not None:
             filtered_data = apply_trading_strategy(filtered_data, buy_sell_strategy)
 
         # Create subplots for charts
-        fig = make_subplots(
-            rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.07,
-            subplot_titles=("Candlestick Chart with Bollinger Bands" if show_bb else "Candlestick Chart",
-                            "Volume",
-                            "MACD" if show_macd else "",
-                            "RSI" if show_rsi else "",
-                            "MFI" if show_mfi else "",
-                            ),
-            row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
-        )
+        if chart_type == "Candlestick":
+            fig = make_subplots(
+                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.07,
+                subplot_titles=("Candlestick Chart with Bollinger Bands" if show_bb else "Candlestick Chart",
+                                "Volume",
+                                "MACD" if show_macd else "",
+                                "RSI" if show_rsi else "",
+                                "MFI" if show_mfi else "",
+                                ),
+                row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
+            )
 
-        fig = plot_candlestick_with_bb(
-            fig, filtered_data, row=1,
-            show_bb=show_bb,
-            show_ma10=show_ma10,
-            show_ma20=show_ma20,
-            show_ma50=show_ma50,
-            show_ma100=show_ma100
-        )
+            fig = plot_candlestick_with_indicators(
+                fig, filtered_data, row=1,
+                show_bb=show_bb,
+                show_ma10=show_ma10,
+                show_ma20=show_ma20,
+                show_ma50=show_ma50,
+                show_ma100=show_ma100
+            )
 
-        # Other plots for MACD, RSI, etc.
-        fig = plot_volume(fig, filtered_data, row=2)
+            # Other plots for MACD, RSI, etc.
+            fig = plot_volume(fig, filtered_data, row=2)
 
-        if show_macd:
-            fig = plot_MACD(fig, filtered_data, row=3)
-        if show_rsi:
-            fig = plot_RSI(fig, filtered_data, row=4)
-        if show_mfi:
-            fig = plot_MFI(fig, filtered_data, row=5)
+            if show_macd:
+                fig = plot_MACD(fig, filtered_data, row=3)
+            if show_rsi:
+                fig = plot_RSI(fig, filtered_data, row=4)
+            if show_mfi:
+                fig = plot_MFI(fig, filtered_data, row=5)
 
-        if buy_sell_strategy != "None":
-            fig = plot_buy_sell_points(fig, filtered_data, row=1)
+            if buy_sell_strategy != "None":
+                fig = plot_buy_sell_points(fig, filtered_data, row=1)
+#---------------------------------------------------------------------------
+        elif chart_type == "Line Chart":
+            fig = make_subplots(
+                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.07,
+                subplot_titles=("Line Chart with Bollinger Bands" if show_bb else "Line Chart",
+                                "Volume",
+                                "MACD" if show_macd else "",
+                                "RSI" if show_rsi else "",
+                                "MFI" if show_mfi else "",
+                                ),
+                row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
+            )
 
+            fig = plot_line_chart_with_indicators(
+                fig, filtered_data, row=1,
+                show_bb=show_bb,
+                show_ma10=show_ma10,
+                show_ma20=show_ma20,
+                show_ma50=show_ma50,
+                show_ma100=show_ma100
+            )
+
+            # Other plots for MACD, RSI, etc.
+            fig = plot_volume(fig, filtered_data, row=2)
+
+            if show_macd:
+                fig = plot_MACD(fig, filtered_data, row=3)
+            if show_rsi:
+                fig = plot_RSI(fig, filtered_data, row=4)
+            if show_mfi:
+                fig = plot_MFI(fig, filtered_data, row=5)
+
+            if buy_sell_strategy != "None":
+                fig = plot_buy_sell_points(fig, filtered_data, row=1)
+
+#---------------------------------------------------------------------------
+        elif chart_type == "OHLC Chart":
+            fig = make_subplots(
+                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.07,
+                subplot_titles=("OHLC Chart with Bollinger Bands" if show_bb else "OHLC Chart",
+                                "Volume",
+                                "MACD" if show_macd else "",
+                                "RSI" if show_rsi else "",
+                                "MFI" if show_mfi else "",
+                                ),
+                row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
+            )
+
+            fig = plot_ohlc_chart_with_indicators(
+                fig, filtered_data, row=1,
+                show_bb=show_bb,
+                show_ma10=show_ma10,
+                show_ma20=show_ma20,
+                show_ma50=show_ma50,
+                show_ma100=show_ma100
+            )
+
+            # Other plots for MACD, RSI, etc.
+            fig = plot_volume(fig, filtered_data, row=2)
+
+            if show_macd:
+                fig = plot_MACD(fig, filtered_data, row=3)
+            if show_rsi:
+                fig = plot_RSI(fig, filtered_data, row=4)
+            if show_mfi:
+                fig = plot_MFI(fig, filtered_data, row=5)
+
+            if buy_sell_strategy != "None":
+                fig = plot_buy_sell_points(fig, filtered_data, row=1)
+#-----------------------------------------------------------------------------------------
         fig.update_layout(
             height=1000, width=1000, title=f"{ticker} - Interactive Dashboard", xaxis_rangeslider_visible=False,
             template="plotly_dark"
         )
-
         st.plotly_chart(fig)
 
         st.write(
