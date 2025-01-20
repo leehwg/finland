@@ -5,18 +5,12 @@ from plotly.subplots import make_subplots
 import streamlit as st
 import datetime
 
-# Cấu hình giao diện Streamlit
-st.set_page_config(
-    page_title="Stock Trading Strategies",
-    page_icon="📈",
-    layout="wide",
-)
-
 # Helper functions for technical indicators
 def get_MA(df):
     df['MA10'] = df['Price Close'].rolling(window=10).mean()  # MA10
     df['MA20'] = df['Price Close'].rolling(window=20).mean()  # MA20
     df['MA50'] = df['Price Close'].rolling(window=50).mean()  # MA50
+    df['MA100'] = df['Price Close'].rolling(window=100).mean()  # MA100
     return df
 
 def get_MACD(df, column='Price Close'):
@@ -65,7 +59,7 @@ def load_data(file_path):
 
 # Plotting functions for the technical indicators
 def plot_candlestick_with_bb(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True, show_ma20=True,
-                             show_ma50=True):
+                             show_ma50=True, show_ma100=True):
     # Candlestick chart
     fig.add_trace(go.Candlestick(
         x=df['Date'],
@@ -101,17 +95,17 @@ def plot_candlestick_with_bb(fig, df, row, column=1, show_bb=True, show_sma=True
         row = row, col = column
     )
 
-    # Simple Moving Average (SMA)
-    if show_sma:
-        fig.add_trace(go.Scatter(
-    x = df['Date'],
-    y = df['SMA'],
-    name = '20-Day SMA',
-    line = dict(color='orange', width=1.5)),
-    row = row, col = column
-    )
+    # # Simple Moving Average (SMA)
+    # if show_sma:
+    #     fig.add_trace(go.Scatter(
+    # x = df['Date'],
+    # y = df['SMA'],
+    # name = '20-Day SMA',
+    # line = dict(color='orange', width=1.5)),
+    # row = row, col = column
+    # )
 
-    # Moving Averages (MA10, MA20, MA50)
+    # Moving Averages (MA10, MA20, MA50, MA100)
     if show_ma10:
         fig.add_trace(go.Scatter(
     x = df['Date'],
@@ -134,6 +128,15 @@ def plot_candlestick_with_bb(fig, df, row, column=1, show_bb=True, show_sma=True
     y = df['MA50'],
     name = 'MA50',
     line = dict(color='grey', width=1.5)),
+    row = row, col = column
+    )
+
+    if show_ma100:
+        fig.add_trace(go.Scatter(
+    x = df['Date'],
+    y = df['MA100'],
+    name = 'MA100',
+    line = dict(color='#673AB7', width=1.5)),
     row = row, col = column
     )
 
@@ -446,10 +449,10 @@ if uploaded_file is not None:
         filtered_data = get_RSI(filtered_data)
         filtered_data = get_bollinger_bands(filtered_data)
         filtered_data = get_MFI(filtered_data)
-        filtered_data = get_MA(filtered_data)  # Add this line to calculate MA10, MA20, MA50
+        filtered_data = get_MA(filtered_data)  # Add this line to calculate MA10, MA20, MA50, MA100
 
         # Sidebar for selecting indicators to display
-        show_bb = st.sidebar.checkbox("Show Bollinger Bands", value=True)
+        show_bb = st.sidebar.checkbox("Show BB", value=True)
         show_macd = st.sidebar.checkbox("Show MACD", value=True)
         show_rsi = st.sidebar.checkbox("Show RSI", value=True)
         show_mfi = st.sidebar.checkbox("Show MFI", value=True)
@@ -457,23 +460,26 @@ if uploaded_file is not None:
         show_ma10 = st.sidebar.checkbox("Show MA10", value=True)
         show_ma20 = st.sidebar.checkbox("Show MA20", value=True)
         show_ma50 = st.sidebar.checkbox("Show MA50", value=True)
+        show_ma100 = st.sidebar.checkbox("Show MA100", value=True)
+
 
         # Sidebar for selecting Buy/Sell strategy
         buy_sell_strategy = st.sidebar.selectbox(
             "Select Buy/Sell Strategy",
-            options=["None", "SMA", "MACD", "RSI", "MFI", "Bollinger Bands"])
+            options=["None", "SMA", "MACD", "RSI", "MFI", "BB"])
 
         if buy_sell_strategy != "None":
             filtered_data = apply_trading_strategy(filtered_data, buy_sell_strategy)
 
         # Create subplots for charts
         fig = make_subplots(
-            rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.02,
+            rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.07,
             subplot_titles=("Candlestick Chart with Bollinger Bands" if show_bb else "Candlestick Chart",
+                            "Volume",
                             "MACD" if show_macd else "",
                             "RSI" if show_rsi else "",
                             "MFI" if show_mfi else "",
-                            "Volume"),
+                            ),
             row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
         )
 
@@ -482,17 +488,19 @@ if uploaded_file is not None:
             show_bb=show_bb,
             show_ma10=show_ma10,
             show_ma20=show_ma20,
-            show_ma50=show_ma50
+            show_ma50=show_ma50,
+            show_ma100=show_ma100
         )
 
         # Other plots for MACD, RSI, etc.
+        fig = plot_volume(fig, filtered_data, row=2)
+
         if show_macd:
-            fig = plot_MACD(fig, filtered_data, row=2)
+            fig = plot_MACD(fig, filtered_data, row=3)
         if show_rsi:
-            fig = plot_RSI(fig, filtered_data, row=3)
+            fig = plot_RSI(fig, filtered_data, row=4)
         if show_mfi:
-            fig = plot_MFI(fig, filtered_data, row=4)
-        fig = plot_volume(fig, filtered_data, row=5)
+            fig = plot_MFI(fig, filtered_data, row=5)
 
         if buy_sell_strategy != "None":
             fig = plot_buy_sell_points(fig, filtered_data, row=1)
