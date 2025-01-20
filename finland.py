@@ -132,6 +132,7 @@ def plot_candlestick_with_indicators(fig, df, row, column=1, show_bb=True, show_
     line = dict(color='grey', width=1.5)),
     row = row, col = column
     )
+    return fig
 
 # Line Chart
 def plot_line_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True,
@@ -204,6 +205,7 @@ def plot_line_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_s
             line=dict(color='grey', width=1.5)),
             row=row, col=column
         )
+    return fig
 
 # OHLC Chart
 def plot_ohlc_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True,
@@ -492,15 +494,18 @@ def apply_trading_strategy(df, strategy, column='Price Close', risk=0.025):
     # Chiến lược MA
     elif strategy == "SMA":
         for i in range(len(df)):
-            if df['MA10'].iloc[i] > df['MA50'].iloc[i] and not flag:  # MA ngắn cắt lên MA dài
-                buy_list.append(df[column].iloc[i])
-                sell_list.append(np.nan)
+            # Kiểm tra điều kiện cắt lên (Golden Cross)
+            if df['MA20'].iloc[i] > df['MA50'].iloc[i] and df['MA20'].iloc[i - 1] <= df['MA50'].iloc[i - 1]:
+                buy_list.append(df[column].iloc[i])  # Điểm mua
+                sell_list.append(np.nan)  # Không có điểm bán
                 flag = True
-            elif df['MA10'].iloc[i] < df['MA50'].iloc[i] and flag:  # MA ngắn cắt xuống MA dài
-                buy_list.append(np.nan)
-                sell_list.append(df[column].iloc[i])
+            # Kiểm tra điều kiện cắt xuống (Death Cross)
+            elif df['MA20'].iloc[i] < df['MA50'].iloc[i] and df['MA20'].iloc[i - 1] >= df['MA50'].iloc[i - 1]:
+                buy_list.append(np.nan)  # Không có điểm mua
+                sell_list.append(df[column].iloc[i])  # Điểm bán
                 flag = False
             else:
+                # Nếu không có điểm cắt, giữ nguyên
                 buy_list.append(np.nan)
                 sell_list.append(np.nan)
 
@@ -621,6 +626,7 @@ if uploaded_file is not None:
         show_ma20 = st.sidebar.checkbox("Show MA20", value=True)
         show_ma50 = st.sidebar.checkbox("Show MA50", value=True)
 
+
         # Sidebar for selecting Buy/Sell strategy
         st.sidebar.header("Trading Strategy Options")
         buy_sell_strategy = st.sidebar.selectbox(
@@ -648,7 +654,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50,
+                show_ma50=show_ma50
             )
 
             # Other plots for MACD, RSI, etc.
@@ -681,7 +687,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50,
+                show_ma50=show_ma50
             )
 
             # Other plots for MACD, RSI, etc.
@@ -715,7 +721,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50,
+                show_ma50=show_ma50
             )
 
             # Other plots for MACD, RSI, etc.
