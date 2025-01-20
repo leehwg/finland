@@ -282,6 +282,7 @@ def plot_ohlc_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_s
             line=dict(color='grey', width=1.5)),
             row=row, col=column
         )
+    return fig
 #--------------------------------------------------------------------------------
 
 def plot_MACD(fig, df, row, column=1):
@@ -603,13 +604,12 @@ if uploaded_file is not None:
             ["Candlestick", "Line Chart", "OHLC Chart"]
         )
 
-
         # Calculate technical indicators
         filtered_data = get_MACD(filtered_data)
         filtered_data = get_RSI(filtered_data)
         filtered_data = get_bollinger_bands(filtered_data)
         filtered_data = get_MFI(filtered_data)
-        filtered_data = get_MA(filtered_data)  # Add this line to calculate MA10, MA20, MA50, MA100
+        filtered_data = get_MA(filtered_data)  # Add this line to calculate MA10, MA20, MA50
 
         # Sidebar for selecting indicators to display
         show_bb = st.sidebar.checkbox("Show BB", value=True)
@@ -620,8 +620,6 @@ if uploaded_file is not None:
         show_ma10 = st.sidebar.checkbox("Show MA10", value=True)
         show_ma20 = st.sidebar.checkbox("Show MA20", value=True)
         show_ma50 = st.sidebar.checkbox("Show MA50", value=True)
-        show_ma100 = st.sidebar.checkbox("Show MA100", value=True)
-
 
         # Sidebar for selecting Buy/Sell strategy
         st.sidebar.header("Trading Strategy Options")
@@ -650,7 +648,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50
+                show_ma50=show_ma50,
             )
 
             # Other plots for MACD, RSI, etc.
@@ -683,7 +681,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50
+                show_ma50=show_ma50,
             )
 
             # Other plots for MACD, RSI, etc.
@@ -717,7 +715,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50
+                show_ma50=show_ma50,
             )
 
             # Other plots for MACD, RSI, etc.
