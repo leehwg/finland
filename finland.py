@@ -766,11 +766,13 @@ if uploaded_file is not None:
 
             if buy_sell_strategy != "None":
                 fig = plot_buy_sell_points(fig, filtered_data, row=1)
+
 #-----------------------------------------------------------------------------------------
         fig.update_layout(
             height=1000, width=1000, title=f"{ticker} - Interactive Dashboard", xaxis_rangeslider_visible=False,
             template="plotly_dark"
         )
+
         st.plotly_chart(fig)
 
         st.write(
