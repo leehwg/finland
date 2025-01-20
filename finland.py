@@ -460,7 +460,7 @@ def apply_trading_strategy(df, strategy, column='Price Close', risk=0.025):
                 sell_list.append(np.nan)
 
     # Chiến lược Bollinger Bands
-    elif strategy == "Bollinger Bands":
+    elif strategy == "BB":
         for i in range(len(df)):
             if df[column].iloc[i] < df['Lower Band'].iloc[i] and not flag:  # Giá dưới dải dưới
                 buy_list.append(df[column].iloc[i])
@@ -639,7 +639,7 @@ if uploaded_file is not None:
         # Create subplots for charts
         if chart_type == "Candlestick":
             fig = make_subplots(
-                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.07,
+                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
                 subplot_titles=("Candlestick Chart with Bollinger Bands" if show_bb else "Candlestick Chart",
                                 "Volume",
                                 "MACD" if show_macd else "",
@@ -672,7 +672,7 @@ if uploaded_file is not None:
 #---------------------------------------------------------------------------
         elif chart_type == "Line Chart":
             fig = make_subplots(
-                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.07,
+                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
                 subplot_titles=("Line Chart with Bollinger Bands" if show_bb else "Line Chart",
                                 "Volume",
                                 "MACD" if show_macd else "",
@@ -706,7 +706,7 @@ if uploaded_file is not None:
 #---------------------------------------------------------------------------
         elif chart_type == "OHLC Chart":
             fig = make_subplots(
-                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.07,
+                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
                 subplot_titles=("OHLC Chart with Bollinger Bands" if show_bb else "OHLC Chart",
                                 "Volume",
                                 "MACD" if show_macd else "",
@@ -738,11 +738,39 @@ if uploaded_file is not None:
                 fig = plot_buy_sell_points(fig, filtered_data, row=1)
 
 #-----------------------------------------------------------------------------------------
-        fig.update_layout(
-            height=1000, width=1000, title=f"{ticker} - Interactive Dashboard", xaxis_rangeslider_visible=False,
-            template="plotly_dark"
+        fig.update_layout(height=1000, width=1000, title=f"{ticker} - Interactive Dashboard", xaxis_rangeslider_visible=False,
+            template="plotly_dark",
+            xaxis=dict(
+                showgrid=False,  # To hide gridlines
+                showticklabels=True,  # Show date labels
+                tickformat="%Y-%m-%d",  # Format the date
+                tickangle=0  # Rotate the labels if needed
+            ),
+            xaxis2=dict(
+                showgrid=False,
+                showticklabels=True,
+                tickformat="%Y-%m-%d",
+                tickangle=0
+            ),
+            xaxis3=dict(
+                showgrid=False,
+                showticklabels=True,
+                tickformat="%Y-%m-%d",
+                tickangle=0
+            ),
+            xaxis4=dict(
+                showgrid=False,
+                showticklabels=True,
+                tickformat="%Y-%m-%d",
+                tickangle=0
+            ),
+            xaxis5=dict(
+                showgrid=False,
+                showticklabels=True,
+                tickformat="%Y-%m-%d",
+                tickangle=0
+            )
         )
-
         st.plotly_chart(fig)
 
         st.write(
