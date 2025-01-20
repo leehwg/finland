@@ -10,7 +10,6 @@ def get_MA(df):
     df['MA10'] = df['Price Close'].rolling(window=10).mean()  # MA10
     df['MA20'] = df['Price Close'].rolling(window=20).mean()  # MA20
     df['MA50'] = df['Price Close'].rolling(window=50).mean()  # MA50
-    df['MA100'] = df['Price Close'].rolling(window=100).mean()  # MA100
     return df
 
 def get_MACD(df, column='Price Close'):
@@ -62,7 +61,7 @@ def load_data(file_path):
 
 # Candlestick
 def plot_candlestick_with_indicators(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True,
-                                     show_ma20=True, show_ma50=True, show_ma100=True):
+                                     show_ma20=True, show_ma50=True):
     # Candlestick chart
     fig.add_trace(go.Candlestick(
         x=df['Date'],
@@ -108,7 +107,7 @@ def plot_candlestick_with_indicators(fig, df, row, column=1, show_bb=True, show_
         row = row, col = column
         )
 
-    # Moving Averages (MA10, MA20, MA50, MA100)
+    # Moving Averages (MA10, MA20, MA50)
     if show_ma10:
         fig.add_trace(go.Scatter(
     x = df['Date'],
@@ -134,19 +133,9 @@ def plot_candlestick_with_indicators(fig, df, row, column=1, show_bb=True, show_
     row = row, col = column
     )
 
-    if show_ma100:
-        fig.add_trace(go.Scatter(
-    x = df['Date'],
-    y = df['MA100'],
-    name = 'MA100',
-    line = dict(color='#673AB7', width=1.5)),
-    row = row, col = column
-    )
-    return fig
-
 # Line Chart
 def plot_line_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True,
-                                     show_ma20=True, show_ma50=True, show_ma100=True):
+                                     show_ma20=True, show_ma50=True):
     fig.add_trace(
         go.Scatter(
             x=df['Date'],
@@ -190,7 +179,7 @@ def plot_line_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_s
                 row=row, col=column
             )
 
-    # Moving Averages (MA10, MA20, MA50, MA100)
+    # Moving Averages (MA10, MA20, MA50)
     if show_ma10:
         fig.add_trace(go.Scatter(
             x=df['Date'],
@@ -216,19 +205,9 @@ def plot_line_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_s
             row=row, col=column
         )
 
-    if show_ma100:
-        fig.add_trace(go.Scatter(
-            x=df['Date'],
-            y=df['MA100'],
-            name='MA100',
-            line=dict(color='#673AB7', width=1.5)),
-            row=row, col=column
-        )
-    return fig
-
 # OHLC Chart
 def plot_ohlc_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_sma=True, show_ma10=True,
-                                     show_ma20=True, show_ma50=True, show_ma100=True):
+                                     show_ma20=True, show_ma50=True):
     fig.add_trace(
         go.Ohlc(
             x=df['Date'],
@@ -278,7 +257,7 @@ def plot_ohlc_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_s
                 row=row, col=column
             )
 
-    # Moving Averages (MA10, MA20, MA50, MA100)
+    # Moving Averages (MA10, MA20, MA50)
     if show_ma10:
         fig.add_trace(go.Scatter(
             x=df['Date'],
@@ -303,16 +282,6 @@ def plot_ohlc_chart_with_indicators(fig, df, row, column=1, show_bb=True, show_s
             line=dict(color='grey', width=1.5)),
             row=row, col=column
         )
-
-    if show_ma100:
-        fig.add_trace(go.Scatter(
-            x=df['Date'],
-            y=df['MA100'],
-            name='MA100',
-            line=dict(color='#673AB7', width=1.5)),
-            row=row, col=column
-        )
-    return fig
 #--------------------------------------------------------------------------------
 
 def plot_MACD(fig, df, row, column=1):
@@ -681,8 +650,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50,
-                show_ma100=show_ma100
+                show_ma50=show_ma50
             )
 
             # Other plots for MACD, RSI, etc.
@@ -715,8 +683,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50,
-                show_ma100=show_ma100
+                show_ma50=show_ma50
             )
 
             # Other plots for MACD, RSI, etc.
@@ -750,8 +717,7 @@ if uploaded_file is not None:
                 show_bb=show_bb,
                 show_ma10=show_ma10,
                 show_ma20=show_ma20,
-                show_ma50=show_ma50,
-                show_ma100=show_ma100
+                show_ma50=show_ma50
             )
 
             # Other plots for MACD, RSI, etc.
