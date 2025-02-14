@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 import datetime
+import warnings
 
 # Helper functions for technical indicators
 def get_MA(df):
@@ -45,15 +46,6 @@ def get_MFI(df, high_col='Price High', low_col='Price Low', close_col='Price Clo
     negative_flow_sum = df['Negative Flow'].rolling(window=period).sum()
     money_flow_ratio = positive_flow_sum / negative_flow_sum
     df['MFI'] = 100 - (100 / (1 + money_flow_ratio))
-    return df
-
-
-###########################################################################################################
-# Load data function
-def load_data(file_path):
-    df = pd.read_csv(file_path)
-    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
-    df.sort_values(by=["Ticker", "Date"], inplace=True)
     return df
 
 ###########################################################################################################
@@ -554,8 +546,6 @@ st.markdown(
 st.sidebar.header("Settings")
 st.sidebar.subheader("Query Parameters")
 
-# File uploader
-uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type="csv")
 
 # Add dynamic and visually engaging content (e.g., stock images, charts)
 st.markdown(
@@ -574,206 +564,208 @@ st.markdown(
     unsafe_allow_html=True,
 )
 ####################################################################################################################
+warnings.filterwarnings('ignore')
 
-if uploaded_file is not None:
-    # Load the data
-    data = load_data(uploaded_file)
-    tickers = data['Ticker'].unique()
+# Load the data
+url = 'https://drive.google.com/file/d/1xWKphY-ZQegCqWpEO9BC25uPfRIzq7al/view?usp=sharing'
+url = 'https://drive.google.com/uc?id=' + url.split('/')[-2]
+data = df = pd.read_csv(url)
+data['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
 
-    ticker = st.sidebar.selectbox("Select Ticker:", options=tickers)
-    ticker_data = data[data["Ticker"] == ticker]
+tickers = data['Ticker'].unique()
 
-    # Calculate start_date and end_date based on the selected ticker
-    start_date = ticker_data["Date"].min().date()
-    end_date = ticker_data["Date"].max().date()
+ticker = st.sidebar.selectbox("Select Ticker:", options=tickers)
+ticker_data = data[data["Ticker"] == ticker]
 
-    start_date = st.sidebar.date_input("Start Date:", start_date, min_value=start_date, max_value=end_date)
-    end_date = st.sidebar.date_input("End Date:", end_date, min_value=start_date, max_value=end_date)
+# Calculate start_date and end_date based on the selected ticker
+start_date = ticker_data["Date"].min().date()
+end_date = ticker_data["Date"].max().date()
 
-    filtered_data = data[(data["Ticker"] == ticker) & (data["Date"] >= pd.Timestamp(start_date)) & (
-                data["Date"] <= pd.Timestamp(end_date))]
+start_date = st.sidebar.date_input("Start Date:", start_date, min_value=start_date, max_value=end_date)
+end_date = st.sidebar.date_input("End Date:", end_date, min_value=start_date, max_value=end_date)
 
-    if filtered_data.empty:
-        st.error("No data available for the selected parameters.")
+filtered_data = data[(data["Ticker"] == ticker) & (data["Date"] >= pd.Timestamp(start_date)) & (
+            data["Date"] <= pd.Timestamp(end_date))]
 
-    else:
-        # Display filtered data
-        st.markdown(f"## {ticker} - Price Data")
-        st.dataframe(filtered_data)
+if filtered_data.empty:
+    st.error("No data available for the selected parameters.")
+
+else:
+    # Display filtered data
+    st.markdown(f"## {ticker} - Price Data")
+    st.dataframe(filtered_data)
 
 
-        # Sidebar for selecting Chart to display
-        st.sidebar.header("Chart Options")
-        chart_type = st.sidebar.selectbox(
-            "Select Chart Type",
-            ["Candlestick", "Line Chart", "OHLC Chart"]
+    # Sidebar for selecting Chart to display
+    st.sidebar.header("Chart Options")
+    chart_type = st.sidebar.selectbox(
+        "Select Chart Type",
+        ["Candlestick", "Line Chart", "OHLC Chart"]
+    )
+
+    # Calculate technical indicators
+    filtered_data = get_MACD(filtered_data)
+    filtered_data = get_RSI(filtered_data)
+    filtered_data = get_bollinger_bands(filtered_data)
+    filtered_data = get_MFI(filtered_data)
+    filtered_data = get_MA(filtered_data)  # Add this line to calculate MA10, MA20, MA50
+
+    # Sidebar for selecting indicators to display
+    show_bb = st.sidebar.checkbox("Show BB", value=True)
+    show_macd = st.sidebar.checkbox("Show MACD", value=True)
+    show_rsi = st.sidebar.checkbox("Show RSI", value=True)
+    show_mfi = st.sidebar.checkbox("Show MFI", value=True)
+        # Sidebar for moving averages
+    show_ma10 = st.sidebar.checkbox("Show MA10", value=True)
+    show_ma20 = st.sidebar.checkbox("Show MA20", value=True)
+    show_ma50 = st.sidebar.checkbox("Show MA50", value=True)
+
+
+    # Sidebar for selecting Buy/Sell strategy
+    st.sidebar.header("Trading Strategy Options")
+    buy_sell_strategy = st.sidebar.selectbox(
+        "Select Buy/Sell Strategy",
+        options=["None", "SMA", "MACD", "RSI", "MFI", "BB"])
+
+    if buy_sell_strategy != "None":
+        filtered_data = apply_trading_strategy(filtered_data, buy_sell_strategy)
+
+    # Create subplots for charts
+    if chart_type == "Candlestick":
+        fig = make_subplots(
+            rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+            subplot_titles=("Candlestick Chart with Bollinger Bands" if show_bb else "Candlestick Chart",
+                            "Volume",
+                            "MACD" if show_macd else "",
+                            "RSI" if show_rsi else "",
+                            "MFI" if show_mfi else "",
+                            ),
+            row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
         )
 
-        # Calculate technical indicators
-        filtered_data = get_MACD(filtered_data)
-        filtered_data = get_RSI(filtered_data)
-        filtered_data = get_bollinger_bands(filtered_data)
-        filtered_data = get_MFI(filtered_data)
-        filtered_data = get_MA(filtered_data)  # Add this line to calculate MA10, MA20, MA50
+        fig = plot_candlestick_with_indicators(
+            fig, filtered_data, row=1,
+            show_bb=show_bb,
+            show_ma10=show_ma10,
+            show_ma20=show_ma20,
+            show_ma50=show_ma50
+        )
 
-        # Sidebar for selecting indicators to display
-        show_bb = st.sidebar.checkbox("Show BB", value=True)
-        show_macd = st.sidebar.checkbox("Show MACD", value=True)
-        show_rsi = st.sidebar.checkbox("Show RSI", value=True)
-        show_mfi = st.sidebar.checkbox("Show MFI", value=True)
-            # Sidebar for moving averages
-        show_ma10 = st.sidebar.checkbox("Show MA10", value=True)
-        show_ma20 = st.sidebar.checkbox("Show MA20", value=True)
-        show_ma50 = st.sidebar.checkbox("Show MA50", value=True)
+        # Other plots for MACD, RSI, etc.
+        fig = plot_volume(fig, filtered_data, row=2)
 
-
-        # Sidebar for selecting Buy/Sell strategy
-        st.sidebar.header("Trading Strategy Options")
-        buy_sell_strategy = st.sidebar.selectbox(
-            "Select Buy/Sell Strategy",
-            options=["None", "SMA", "MACD", "RSI", "MFI", "BB"])
+        if show_macd:
+            fig = plot_MACD(fig, filtered_data, row=3)
+        if show_rsi:
+            fig = plot_RSI(fig, filtered_data, row=4)
+        if show_mfi:
+            fig = plot_MFI(fig, filtered_data, row=5)
 
         if buy_sell_strategy != "None":
-            filtered_data = apply_trading_strategy(filtered_data, buy_sell_strategy)
-
-        # Create subplots for charts
-        if chart_type == "Candlestick":
-            fig = make_subplots(
-                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                subplot_titles=("Candlestick Chart with Bollinger Bands" if show_bb else "Candlestick Chart",
-                                "Volume",
-                                "MACD" if show_macd else "",
-                                "RSI" if show_rsi else "",
-                                "MFI" if show_mfi else "",
-                                ),
-                row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
-            )
-
-            fig = plot_candlestick_with_indicators(
-                fig, filtered_data, row=1,
-                show_bb=show_bb,
-                show_ma10=show_ma10,
-                show_ma20=show_ma20,
-                show_ma50=show_ma50
-            )
-
-            # Other plots for MACD, RSI, etc.
-            fig = plot_volume(fig, filtered_data, row=2)
-
-            if show_macd:
-                fig = plot_MACD(fig, filtered_data, row=3)
-            if show_rsi:
-                fig = plot_RSI(fig, filtered_data, row=4)
-            if show_mfi:
-                fig = plot_MFI(fig, filtered_data, row=5)
-
-            if buy_sell_strategy != "None":
-                fig = plot_buy_sell_points(fig, filtered_data, row=1)
+            fig = plot_buy_sell_points(fig, filtered_data, row=1)
 #---------------------------------------------------------------------------
-        elif chart_type == "Line Chart":
-            fig = make_subplots(
-                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                subplot_titles=("Line Chart with Bollinger Bands" if show_bb else "Line Chart",
-                                "Volume",
-                                "MACD" if show_macd else "",
-                                "RSI" if show_rsi else "",
-                                "MFI" if show_mfi else "",
-                                ),
-                row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
-            )
+    elif chart_type == "Line Chart":
+        fig = make_subplots(
+            rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+            subplot_titles=("Line Chart with Bollinger Bands" if show_bb else "Line Chart",
+                            "Volume",
+                            "MACD" if show_macd else "",
+                            "RSI" if show_rsi else "",
+                            "MFI" if show_mfi else "",
+                            ),
+            row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
+        )
 
-            fig = plot_line_chart_with_indicators(
-                fig, filtered_data, row=1,
-                show_bb=show_bb,
-                show_ma10=show_ma10,
-                show_ma20=show_ma20,
-                show_ma50=show_ma50
-            )
+        fig = plot_line_chart_with_indicators(
+            fig, filtered_data, row=1,
+            show_bb=show_bb,
+            show_ma10=show_ma10,
+            show_ma20=show_ma20,
+            show_ma50=show_ma50
+        )
 
-            # Other plots for MACD, RSI, etc.
-            fig = plot_volume(fig, filtered_data, row=2)
+        # Other plots for MACD, RSI, etc.
+        fig = plot_volume(fig, filtered_data, row=2)
 
-            if show_macd:
-                fig = plot_MACD(fig, filtered_data, row=3)
-            if show_rsi:
-                fig = plot_RSI(fig, filtered_data, row=4)
-            if show_mfi:
-                fig = plot_MFI(fig, filtered_data, row=5)
+        if show_macd:
+            fig = plot_MACD(fig, filtered_data, row=3)
+        if show_rsi:
+            fig = plot_RSI(fig, filtered_data, row=4)
+        if show_mfi:
+            fig = plot_MFI(fig, filtered_data, row=5)
 
-            if buy_sell_strategy != "None":
-                fig = plot_buy_sell_points(fig, filtered_data, row=1)
+        if buy_sell_strategy != "None":
+            fig = plot_buy_sell_points(fig, filtered_data, row=1)
 
 #---------------------------------------------------------------------------
-        elif chart_type == "OHLC Chart":
-            fig = make_subplots(
-                rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                subplot_titles=("OHLC Chart with Bollinger Bands" if show_bb else "OHLC Chart",
-                                "Volume",
-                                "MACD" if show_macd else "",
-                                "RSI" if show_rsi else "",
-                                "MFI" if show_mfi else "",
-                                ),
-                row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
-            )
+    elif chart_type == "OHLC Chart":
+        fig = make_subplots(
+            rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+            subplot_titles=("OHLC Chart with Bollinger Bands" if show_bb else "OHLC Chart",
+                            "Volume",
+                            "MACD" if show_macd else "",
+                            "RSI" if show_rsi else "",
+                            "MFI" if show_mfi else "",
+                            ),
+            row_width=[0.2, 0.2, 0.2, 0.2, 0.6],
+        )
 
-            fig = plot_ohlc_chart_with_indicators(
-                fig, filtered_data, row=1,
-                show_bb=show_bb,
-                show_ma10=show_ma10,
-                show_ma20=show_ma20,
-                show_ma50=show_ma50
-            )
+        fig = plot_ohlc_chart_with_indicators(
+            fig, filtered_data, row=1,
+            show_bb=show_bb,
+            show_ma10=show_ma10,
+            show_ma20=show_ma20,
+            show_ma50=show_ma50
+        )
 
-            # Other plots for MACD, RSI, etc.
-            fig = plot_volume(fig, filtered_data, row=2)
+        # Other plots for MACD, RSI, etc.
+        fig = plot_volume(fig, filtered_data, row=2)
 
-            if show_macd:
-                fig = plot_MACD(fig, filtered_data, row=3)
-            if show_rsi:
-                fig = plot_RSI(fig, filtered_data, row=4)
-            if show_mfi:
-                fig = plot_MFI(fig, filtered_data, row=5)
+        if show_macd:
+            fig = plot_MACD(fig, filtered_data, row=3)
+        if show_rsi:
+            fig = plot_RSI(fig, filtered_data, row=4)
+        if show_mfi:
+            fig = plot_MFI(fig, filtered_data, row=5)
 
-            if buy_sell_strategy != "None":
-                fig = plot_buy_sell_points(fig, filtered_data, row=1)
+        if buy_sell_strategy != "None":
+            fig = plot_buy_sell_points(fig, filtered_data, row=1)
 
 #-----------------------------------------------------------------------------------------
-        fig.update_layout(height=1000, width=1000, title=f"{ticker} - Interactive Dashboard", xaxis_rangeslider_visible=False,
-            template="plotly_dark",
-            xaxis=dict(
-                showgrid=False,  # To hide gridlines
-                showticklabels=True,  # Show date labels
-                tickformat="%Y-%m-%d",  # Format the date
-                tickangle=0  # Rotate the labels if needed
-            ),
-            xaxis2=dict(
-                showgrid=False,
-                showticklabels=True,
-                tickformat="%Y-%m-%d",
-                tickangle=0
-            ),
-            xaxis3=dict(
-                showgrid=False,
-                showticklabels=True,
-                tickformat="%Y-%m-%d",
-                tickangle=0
-            ),
-            xaxis4=dict(
-                showgrid=False,
-                showticklabels=True,
-                tickformat="%Y-%m-%d",
-                tickangle=0
-            ),
-            xaxis5=dict(
-                showgrid=False,
-                showticklabels=True,
-                tickformat="%Y-%m-%d",
-                tickangle=0
-            )
+    fig.update_layout(height=1000, width=1000, title=f"{ticker} - Interactive Dashboard", xaxis_rangeslider_visible=False,
+        template="plotly_dark",
+        xaxis=dict(
+            showgrid=False,  # To hide gridlines
+            showticklabels=True,  # Show date labels
+            tickformat="%Y-%m-%d",  # Format the date
+            tickangle=0  # Rotate the labels if needed
+        ),
+        xaxis2=dict(
+            showgrid=False,
+            showticklabels=True,
+            tickformat="%Y-%m-%d",
+            tickangle=0
+        ),
+        xaxis3=dict(
+            showgrid=False,
+            showticklabels=True,
+            tickformat="%Y-%m-%d",
+            tickangle=0
+        ),
+        xaxis4=dict(
+            showgrid=False,
+            showticklabels=True,
+            tickformat="%Y-%m-%d",
+            tickangle=0
+        ),
+        xaxis5=dict(
+            showgrid=False,
+            showticklabels=True,
+            tickformat="%Y-%m-%d",
+            tickangle=0
         )
-        st.plotly_chart(fig)
+    )
+    st.plotly_chart(fig)
 
-        st.write(
-            "**Disclaimer:** This dashboard is for educational purposes only and does not constitute financial advice.")
-else:
-    st.error("Please upload a CSV file to continue.")
+    st.write(
+        "**Disclaimer:** This dashboard is for educational purposes only and does not constitute financial advice.")
